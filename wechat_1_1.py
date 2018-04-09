@@ -44,7 +44,8 @@ def parse_xml(data):
     server = root.find("ToUserName").text
     user = root.find("FromUserName").text
     type = root.find("MsgType").text
-    content = root.find("Content").text
+    # content = root.find("Content").text
+    content = 'unknow'
     return server, user, type, content
 
 
