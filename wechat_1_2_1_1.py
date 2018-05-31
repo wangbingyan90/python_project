@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # coding:utf-8
+
 import os,sys,time
 import wechat_1_2_1_2
 

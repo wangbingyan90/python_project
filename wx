@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+
+PATH=/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin:~/bin
+export PATH
+
+if [ -z "$1" ]; then 
+sudo python /ssr/shadowsocks/local.py -c /ssr/config.json -d start 
+fi
+
+if [ "$1" = "-start" ]; then 
+sudo python /ssr/shadowsocks/local.py -c /ssr/config.json -d start 
+fi
+
+if [ "$1" = "-stop" ]; then 
+sudo python /ssr/shadowsocks/local.py -c /ssr/config.json -d stop 
+fi
+
+if [ "$1" = "-s" ]; then 
+sudo python /ssr/shadowsocks/local.py -c /ssr/config.json -d stop 
+fi
+
