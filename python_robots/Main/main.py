@@ -16,7 +16,6 @@ class Main:
         self.doLogin()
 
 
-
     def doLogin(self):
         while self.getUUID():
             time.sleep(1)
@@ -24,7 +23,11 @@ class Main:
         while self.isLogin():
             time.sleep(1)
         self.webInit()
+        self.doWebwxstatusnotify()
         # self.getContract()
+        print('登陆成功，进行同步数据')
+        while self.doSynccheck():
+            time.sleep(5)
 
     def getUUID(self):
         url = BASE_URL + '/jslogin'
@@ -68,16 +71,14 @@ class Main:
         data = r.text.split('=',2)
         code = data[1][:3]
         if code == '200':
-            # url = data[2][1:-2] + '&fun=new'
-            # r = self.session.get(url)
-            # with open('get.txt', 'wb') as f:
-            #     f.write(r.content)
             self.loginInfo['url'] = data[2][1:-2]
             r = self.session.get(self.loginInfo['url'], allow_redirects=False)
             self.loginInfo['url'] = self.loginInfo['url'][:self.loginInfo['url'].rfind('/')]
             # print(self.loginInfo['url'])
             self.setLoginInfo(r.text)
             return False
+        if code == '201':
+            print("扫描成功，等待确认")
         return True
 
 
@@ -90,6 +91,7 @@ class Main:
         self.loginInfo['BaseRequest']['DeviceID'] = data[11]
 
 
+    # 初始化进入界面数据
     def webInit(self):
         url = self.loginInfo['url'] + '/webwxinit?r= ' + str(int(time.time()))
         params = {
@@ -98,11 +100,24 @@ class Main:
         r = self.session.post(url, data = json.dumps(params), headers = self.jsonHeaders)
         r.encoding = r.apparent_encoding
         dic = json.loads(r.text)
-        print(r.text)
+        self.loginInfo['SyncKey'] = dic['SyncKey']
+        self.loginInfo['synckey'] = '|'.join([str(item['Key'])+'_'+str(item['Val']) for item in dic['SyncKey']['List']])
+        print(self.loginInfo['synckey'])
         self.userName = dic['User']['UserName']
-        print(dic['ContactList'][2]['NickName'])
-        self.sendMsg(dic['ContactList'][2]['UserName'])
-        print(self.userName)
+
+
+    # 开启微信状态通知
+    def doWebwxstatusnotify(self):
+        url = self.loginInfo['url'] + '/webwxstatusnotify'
+        params = {
+                'BaseRequest': self.loginInfo['BaseRequest'],
+                'Code': 3,
+                'FromUserName': self.userName,
+                'ToUserName': self.userName,
+                'ClientMsgId': int(time.time()),
+                }
+        r = self.session.post(url, data = json.dumps(params), headers = self.jsonHeaders)
+        
 
     # 获取联系人
     def getContract(self):
@@ -112,11 +127,65 @@ class Main:
             'seq': 0,
             'skey': self.loginInfo['BaseRequest']['Skey'],
         }
-        r = self.session.get(url=url, params=params,headers = self.jsonHeaders)
+        r = self.session.get(url, params=params,headers = self.jsonHeaders)
         r.encoding = r.apparent_encoding
         data = json.loads(r.text)['MemberList']
 
 
+    # 同步刷新
+    def doSynccheck(self):
+        url = self.loginInfo['url'] + '/synccheck'
+        params = {
+            'r': int(time.time()),
+            'skey': self.loginInfo['BaseRequest']['Skey'],
+            'sid': self.loginInfo['BaseRequest']['Sid'],
+            'uin': self.loginInfo['BaseRequest']['Uin'],
+            'deviceid': self.loginInfo['BaseRequest']['DeviceID'],
+            'synckey': self.loginInfo['synckey'],
+        }
+        r = self.session.get(url, params = params)
+        print(r.text)
+        data = r.text.split(':')
+        if data[1][1:2] == '0':
+            print('更新')
+            if data[2][1:2] == '0':
+                print('没有新消息')
+                return True
+            else:
+                msgList = self.getNewMsg()
+                if msgList:
+                    self.printMsg(msgList)
+                else:
+                    print('信息数量：0')
+                return True
+        print('退出登录')
+        return False
+
+
+    # 获取新信息
+    def getNewMsg(self):
+        url = self.loginInfo['url'] + '/webwxsync?sid=' + self.loginInfo['BaseRequest']['Sid'] + '&skey=' + self.loginInfo['BaseRequest']['Skey'] + '&pass_ticket=' + self.loginInfo['BaseRequest']['DeviceID'] 
+        params = {
+            'BaseRequest': self.loginInfo['BaseRequest'],
+            'SyncKey': self.loginInfo['SyncKey'],
+            'rr': ~int(time.time())
+        }
+        print(params)
+        r = self.session.post(url, data = json.dumps(params),headers = self.jsonHeaders)
+        r.encoding = r.apparent_encoding
+        dic = json.loads(r.text)
+        print(dic)
+        self.loginInfo['SyncKey'] = dic['SyncKey']
+        self.loginInfo['synckey'] = '|'.join([str(item['Key'])+'_'+str(item['Val']) for item in dic['SyncKey']['List']])
+        if dic['AddMsgCount'] != 0: return dic['AddMsgList']
+        return None
+
+
+    def printMsg(self,msgList):
+        for m in msgList:
+            print(m['FromUserName'])
+            print(m['Content'])
+        
     def sendMsg(self,toUserName, msg = 'Test Message'):
         url = self.loginInfo['url'] + '/webwxsendmsg'
         params = {
