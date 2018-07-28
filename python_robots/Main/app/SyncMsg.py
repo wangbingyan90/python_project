@@ -71,5 +71,64 @@ class SyncThread (threading.Thread):
 
     def printMsg(self,msgList):
         for m in msgList:
-            print(m['FromUserName'])
-            print(m['Content'])
+            print('发送方：' + m['FromUserName'])
+            print('接受方：' + m['ToUserName'])
+            print('时间：' + str(m['CreateTime']))
+            print(m['MsgType'])
+
+            if m['MsgType'] == 1  or m['MsgType'] == 51: # 文本消息
+                print('文本消息')
+                print('内容：' + m['Content'])
+            
+            elif m['MsgType'] == 3 or m['MsgType'] == 47: # 图片消息
+                print('图片消息')
+                url = self.loginInfo['url'] + '/webwxgetmsgimg'
+                params = {
+                    'MsgID': m['NewMsgId'],
+                    'skey': self.loginInfo['BaseRequest']['Skey'],
+                    # 'type':	'slave' 缩略图参数
+                }
+                r = self.session.get(url, params = params)
+                with open('Picture.jpg', 'wb') as f:
+                    f.write(r.content)
+            
+            elif m['MsgType'] == 34: # 语音消息
+                print('语言消息')
+                url = self.loginInfo['url'] + '/webwxgetvoice'
+                params = {
+                    'MsgID': m['NewMsgId'],
+                    'skey': self.loginInfo['BaseRequest']['Skey'],
+                    # 'type':	'slave' 缩略图参数
+                }
+                r = self.session.get(url, params = params)
+                with open('voice.amr', 'wb') as f:
+                    f.write(r.content)
+
+            elif m['MsgType'] == 34: # 语音消息
+                print('语言消息')
+                url = self.loginInfo['url'] + '/webwxgetvoice'
+                params = {
+                    'MsgID': m['NewMsgId'],
+                    'skey': self.loginInfo['BaseRequest']['Skey'],
+                    # 'type':	'slave' 缩略图参数
+                }
+                r = self.session.get(url, params = params)
+                with open('voice.amr', 'wb') as f:
+                    f.write(r.content)
+            
+            elif m['MsgType'] == 49: # 分享消息
+                print('分享消息')
+                if m['AppMsgType'] == 5:
+                    print('分享页面')
+                    print(m['Url'])
+                elif m['AppMsgType'] == 6:
+                    print('分享文件')
+                    print(m['FileName'])
+                    print(m['FileSize'])
+
+
+            
+
+                
+            
+
