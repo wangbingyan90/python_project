@@ -60,7 +60,13 @@ class WeChatLogin:
         with open('Qrcode.jpg', 'wb') as f:
             f.write(r.content)
         Log.log(Static.I,'二维码获取成功')
-        os.startfile('Qrcode.jpg')
+        try:
+            os.startfile('Qrcode.jpg')
+            Log.log(Static.I,'二维码打开成功')
+        except:
+            Log.log(Static.E,'二维码打开失败，使用打印二维码')
+            from ShowQRCode import ShowQrcode
+            ShowQrcode('Qrcode.jpg', 37, 3).print_qr()
 
 
     def isLogin(self):
@@ -216,6 +222,7 @@ class WeChatLogin:
 
 if __name__ == '__main__':
     g = WeChatLogin()
+    g.doLogin()
     g.sendMsg()
     time.sleep(10)
     g.sendMsg()
