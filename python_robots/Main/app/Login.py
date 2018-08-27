@@ -1,6 +1,6 @@
 import requests,time,os,re,json
 from SyncMsg import SyncThread
-import Static,Log
+import Static,Log,SqlLitUtil
 
 BASE_URL = 'https://login.weixin.qq.com'
 
@@ -12,7 +12,7 @@ class WeChatLogin:
         self.jsonHeaders = {'ContentType': 'application/json; charset=UTF-8'}
         self.session = requests.Session()
         self.loginInfo = {}
-        Log.log(Static.I,'登陆成功')
+        self.sql = SqlLitUtil.SqlLitUtil()
 
 
     def doLogin(self):
@@ -23,7 +23,7 @@ class WeChatLogin:
             time.sleep(1)
         self.webInit()
         self.doWebwxstatusnotify()
-        # self.getContract()
+        self.getContract()
         Log.log(Static.I,'登陆成功')
         print('登陆成功，进行同步数据')
         syncThread = SyncThread(self.session,self.loginInfo)
@@ -146,6 +146,7 @@ class WeChatLogin:
         r = self.session.get(url, params=params,headers = self.jsonHeaders)
         r.encoding = r.apparent_encoding
         data = json.loads(r.text)['MemberList']
+        self.sql.addContracts(data)
 
 
     # 同步刷新
