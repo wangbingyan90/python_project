@@ -31,74 +31,42 @@ class BaiduIndex:
     def __init__(self, para):
 
         self.data = []
-        self.keywords = para['关键字']
+        keyword = para['关键字']
+        self.keywords = keyword if isinstance(keyword, list) else keyword.split('，')
         area = para['地区']
         self.areas = area if isinstance(area, list) else area.split('，')
-        self.result = {area: defaultdict(list) for area in self.areas}
+        self._all_kind = ['all', 'pc', 'wise']
 
 
-        if para['开始日期'] == '':
-            encrypt_datas = self.get_encrypt_datas_all()
-            self.start_date = encrypt_datas[0]['all']['startDate']
-            self.end_date = encrypt_datas[0]['all']['endDate']
+        for keyword in self.keywords:
+            self.result = {area: defaultdict(list) for area in self.areas}
+            self.setDay(para['开始日期'],para['结束日期'],keyword)
+            for area in self.areas:
+                self.get_result(self.start_date,self.end_date,area)
+            self.print_data()
+  
+
+    # 设置时间
+    def setDay(self,start_date,end_date,keyword):
+        
+        if start_date == '':
+            encrypt_datas = self.get_encrypt_datas_all(keyword)
+            self.start_date = encrypt_datas['startDate']
         else:
-            self.start_date = para['开始日期']
-
-        if para['结束日期'] == '':
+            self.start_date = start_date
+        if end_date == '':
             self.end_date = str(datetime.datetime.now()-datetime.timedelta(days=1))[:10]
         else:
-            self.end_date == para['结束日期']
+            self.end_date == end_date
 
-        self._all_kind = ['all', 'pc', 'wise']
-        self._time_range_list = None
-
-        print(self.start_date)
-        print(self.end_date)
-        print(self.areas)
-
-        for area in self.areas:
-            self.get_result(self.start_date,self.end_date,area)
-
-        self.print_data()
-
-
-
-        # keywords = '万达'
-        # area = '广州,北京'
-        # self.keywords = keywords if isinstance(keywords, list) else keywords.split(',')
-        # self.result = {keyword: defaultdict(list) for keyword in self.keywords}
-        # self.areas = area if isinstance(area, list) else area.split(',')
-        # self.result = {area: defaultdict(list) for area in self.areas}
-
-        # self.start_date = '2018-09-01'
-        # self.end_date = '2018-09-30'
-        # self._time_range_list = self.get_time_range_list('2018-09-01', '2018-09-30')
-        # self._all_kind = ['all', 'pc', 'wise']
-        # self.get_result_all()
-
-
-        
-    def get_result_all(self):
-        '''
-        获取最长时间
-        '''
-        encrypt_datas = self.get_encrypt_datas_all()
-        self.start_date = encrypt_datas[0]['all']['startDate']
-        self.end_date = encrypt_datas[0]['all']['endDate']
-        # print(self.start_date)
-        for area in self.areas:
-            self.get_result(encrypt_datas[0]['all']['startDate'],encrypt_datas[0]['all']['endDate'],area)
-        # print(self.result)
-        self.print_data()
-        
 
 
     def get_result(self,start_date, end_date,area):
         '''
         获取结果
         '''
-        self._time_range_list = self.get_time_range_list(start_date, end_date)
-        for start_date, end_date in self._time_range_list:
+        self.time_range_list = self.get_time_range_list(start_date, end_date)
+        for start_date, end_date in self.time_range_list:
             encrypt_datas, uniqid = self.get_encrypt_datas(start_date, end_date,area)
             key = self.get_key(uniqid)
             for encrypt_data in encrypt_datas:
@@ -110,20 +78,15 @@ class BaiduIndex:
         
 
 
-    def get_encrypt_datas_all(self):
+    def get_encrypt_datas_all(self,keyword):
         
         request_args = {
-            'word': ','.join(self.keywords),
+            'word': keyword,
             'area': 0,
         }
         url = 'http://index.baidu.com/api/SearchApi/index?' + urlencode(request_args)
-        html = self.http_get(url)
-        # print('------------SearchApi----------------')
-        # print(html)
-        datas = json.loads(html)
-        encrypt_datas = []
-        for single_data in datas['data']['userIndexes']:
-            encrypt_datas.append(single_data)
+        datas = json.loads(self.http_get(url))
+        encrypt_datas = datas['data']['userIndexes'][0]['all']
         return encrypt_datas
     
 
