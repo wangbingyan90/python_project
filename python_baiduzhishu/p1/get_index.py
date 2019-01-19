@@ -26,28 +26,54 @@ class BaiduIndex:
     #     '地区':'广州，北京',              # 可省略，默认为全部配置地区检索
     #     '平台':'',              # 可省略，默认为pc+移动，1：pc; 2: 移动； 3：pc+移动
     #     '开始日期':'',          # 可省略，默认为最早的时间 如2018-1-1
-    #     '结束日期':'',          # 可省略，默认为今天
+    #     '结束日期':'',          # 可省略，默认为昨天
     #     }
     def __init__(self, para):
 
         self.data = []
-        self._keywords = para['关键字']
+        self.keywords = para['关键字']
         area = para['地区']
         self.areas = area if isinstance(area, list) else area.split('，')
         self.result = {area: defaultdict(list) for area in self.areas}
 
 
+        if para['开始日期'] == '':
+            encrypt_datas = self.get_encrypt_datas_all()
+            self.start_date = encrypt_datas[0]['all']['startDate']
+            self.end_date = encrypt_datas[0]['all']['endDate']
+        else:
+            self.start_date = para['开始日期']
+
+        if para['结束日期'] == '':
+            self.end_date = str(datetime.datetime.now()-datetime.timedelta(days=1))[:10]
+        else:
+            self.end_date == para['结束日期']
+
+        self._all_kind = ['all', 'pc', 'wise']
+        self._time_range_list = None
+
+        print(self.start_date)
+        print(self.end_date)
+        print(self.areas)
+
+        for area in self.areas:
+            self.get_result(self.start_date,self.end_date,area)
+
+        self.print_data()
+
+
+
         # keywords = '万达'
         # area = '广州,北京'
-        # self._keywords = keywords if isinstance(keywords, list) else keywords.split(',')
-        # self.result = {keyword: defaultdict(list) for keyword in self._keywords}
+        # self.keywords = keywords if isinstance(keywords, list) else keywords.split(',')
+        # self.result = {keyword: defaultdict(list) for keyword in self.keywords}
         # self.areas = area if isinstance(area, list) else area.split(',')
         # self.result = {area: defaultdict(list) for area in self.areas}
 
-        self.start_date = '2018-09-01'
-        self.end_date = '2018-09-30'
-        self._time_range_list = self.get_time_range_list('2018-09-01', '2018-09-30')
-        self._all_kind = ['all', 'pc', 'wise']
+        # self.start_date = '2018-09-01'
+        # self.end_date = '2018-09-30'
+        # self._time_range_list = self.get_time_range_list('2018-09-01', '2018-09-30')
+        # self._all_kind = ['all', 'pc', 'wise']
         # self.get_result_all()
 
 
@@ -69,6 +95,7 @@ class BaiduIndex:
 
     def get_result(self,start_date, end_date,area):
         '''
+        获取结果
         '''
         self._time_range_list = self.get_time_range_list(start_date, end_date)
         for start_date, end_date in self._time_range_list:
@@ -86,7 +113,7 @@ class BaiduIndex:
     def get_encrypt_datas_all(self):
         
         request_args = {
-            'word': ','.join(self._keywords),
+            'word': ','.join(self.keywords),
             'area': 0,
         }
         url = 'http://index.baidu.com/api/SearchApi/index?' + urlencode(request_args)
@@ -106,7 +133,7 @@ class BaiduIndex:
         :end_date; str, 2018-10-01
         """
         request_args = {
-            'word': ','.join(self._keywords),
+            'word': ','.join(self.keywords),
             'startDate': start_date,
             'endDate': end_date,
             'area': int(config.area[area]),
@@ -140,8 +167,8 @@ class BaiduIndex:
     def print_data(self,kind = 'all'):
         """
         """
-        file = open(self._keywords[0] +'搜索指数.csv','a')
-        file.write(self._keywords[0] + '\n')
+        file = open(self.keywords[0] +'搜索指数.csv','a')
+        file.write(self.keywords[0] + '\n')
         file.write('时间')
         for area in self.areas:
             file.write(','+area)
