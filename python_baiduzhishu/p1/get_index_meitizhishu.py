@@ -19,7 +19,7 @@ headers = {
 
 class BaiduIndex:
     """
-        百度搜索指数
+        百度媒体指数
     """
 
     # para = {'关键字':'万科',            # 不可省略，多个关键词使用分割
@@ -78,7 +78,7 @@ class BaiduIndex:
         for start_date, end_date in self.time_range_list:
             encrypt_data, uniqid = self.get_encrypt_datas(start_date, end_date,area)
             key = self.get_key(uniqid)
-            c = self.decrypt_func(key, encrypt_data[self.kind]['data'])
+            c = self.decrypt_func(key, encrypt_data['data'])
             self.data = self.data + c
         self.result[area][self.kind].append(self.data)
         self.data=[]
@@ -108,12 +108,12 @@ class BaiduIndex:
             'startDate': str(start_date)[:10],
             'endDate': str(end_date)[:10],
         }
-        url = 'http://index.baidu.com/api/SearchApi/index?' + urlencode(request_args)
+        url = 'http://index.baidu.com/api/NewsApi/getNewsIndex?' + urlencode(request_args)
         html = self.http_get(url)
         datas = json.loads(html)
         uniqid = datas['data']['uniqid']
         encrypt_datas = []
-        for single_data in datas['data']['userIndexes']:
+        for single_data in datas['data']['index']:
             encrypt_datas.append(single_data)
         return (encrypt_datas[0], uniqid)
 
@@ -129,11 +129,11 @@ class BaiduIndex:
     def print_data(self,kind = 'all'):
         """
         """
-        file = open(self.keywords[0] +'搜索指数.csv','a')
+        file = open(self.keywords[0] +'媒体指数.csv','a')
         file.write(self.keywords[0] + '\n')
         file.write('时间')
         for area in self.areas:
-            file.write(','+area)
+            file.write(',指数')
         file.write('\n')
 
         time_len = len(self.result[self.areas[0]]['all'][0])
@@ -191,7 +191,7 @@ class BaiduIndex:
 
 if __name__ == '__main__':
     para = {'关键字':'万科',            # 不可省略，多个关键词使用分割
-            '地区':'广州，北京',              # 可省略，默认为全部配置地区检索
+            '地区':'北京',              # 可省略，默认为全部配置地区检索，媒体指数词条不写
             '平台':'',              # 可省略，默认为pc+移动，1：pc; 2: 移动； 3：pc+移动
             '开始日期':'',          # 可省略，默认为最早的时间 如2018-1-1
             '结束日期':'',          # 可省略，默认为今天
