@@ -30,6 +30,7 @@ class BaiduIndex:
     #     }
     def __init__(self, para):
 
+        self.nowTime=datetime.datetime.now().strftime('%Y-%m-%d %H-%M-%S')
         self.data = []
         keyword = para['关键字']
         self.keywords = keyword if isinstance(keyword, list) else keyword.split('，')
@@ -39,11 +40,13 @@ class BaiduIndex:
         self.setKind(para['平台'])
 
         for keyword in self.keywords:
+            self.result = None
             self.result = {area: defaultdict(list) for area in self.areas}
             self.setDay(para['开始日期'],para['结束日期'],keyword)
             for area in self.areas:
-                self.get_result(self.start_date,self.end_date,area)
-            self.print_data()
+                self.get_result(self.start_date,self.end_date,area,keyword)
+            print(keyword + '查询完成')
+            self.print_data(keyword)
 
 
     def setKind(self,kind):
@@ -70,13 +73,13 @@ class BaiduIndex:
 
 
 
-    def get_result(self,start_date, end_date,area):
+    def get_result(self,start_date, end_date,area,keyword):
         '''
         获取结果
         '''
         self.time_range_list = self.get_time_range_list(start_date, end_date)
         for start_date, end_date in self.time_range_list:
-            encrypt_data, uniqid = self.get_encrypt_datas(start_date, end_date,area)
+            encrypt_data, uniqid = self.get_encrypt_datas(start_date, end_date,area,keyword)
             key = self.get_key(uniqid)
             c = self.decrypt_func(key, encrypt_data['data'])
             self.data = self.data + c
@@ -97,14 +100,14 @@ class BaiduIndex:
         return encrypt_datas
     
 
-    def get_encrypt_datas(self, start_date, end_date,area):
+    def get_encrypt_datas(self, start_date, end_date,area,keyword):
         """
         :start_date; str, 2018-10-01
         :end_date; str, 2018-10-01
         """
         request_args = {
             'area': int(config.area[area]),
-            'word': ','.join(self.keywords),
+            'word': keyword,
             'startDate': str(start_date)[:10],
             'endDate': str(end_date)[:10],
         }
@@ -126,26 +129,26 @@ class BaiduIndex:
         key = datas['data']
         return key
 
-    def print_data(self,kind = 'all'):
+    def print_data(self,keyword):
         """
         """
-        file = open(self.keywords[0] +'媒体指数.csv','a')
-        file.write(self.keywords[0] + '\n')
-        file.write('时间')
-        for area in self.areas:
-            file.write(',指数')
-        file.write('\n')
+        file = open(str(self.nowTime) + '媒体指数.csv','a')
+        file.write('时间,')
 
         time_len = len(self.result[self.areas[0]]['all'][0])
         start_date = self.start_date
         cur_date = datetime.datetime.strptime(start_date, '%Y-%m-%d')
         for i in range(time_len):
             file.write(cur_date.strftime('%Y-%m-%d'))
-            for area in self.areas:
-                file.write(','+self.result[area]['all'][0][i])
-            file.write('\n')
             cur_date += datetime.timedelta(days=1)
-
+            file.write(',')
+        file.write('\n')
+        
+        for area in self.areas:
+            file.write(keyword)
+            for i in range(time_len):
+                file.write(','+self.result[area]['all'][0][i])
+        file.write('\n')
         file.close()
 
 
@@ -190,8 +193,8 @@ class BaiduIndex:
         return ''.join(s).split(',')
 
 if __name__ == '__main__':
-    para = {'关键字':'万科',            # 不可省略，多个关键词使用分割
-            '地区':'北京',              # 可省略，默认为全部配置地区检索，媒体指数词条不写
+    para = {'关键字':'万科，万达',            # 不可省略，多个关键词使用分割
+            '地区':'全国',              # 可省略，默认为全部配置地区检索，媒体指数词条不写
             '平台':'',              # 可省略，默认为pc+移动，1：pc; 2: 移动； 3：pc+移动
             '开始日期':'',          # 可省略，默认为最早的时间 如2018-1-1
             '结束日期':'',          # 可省略，默认为今天
